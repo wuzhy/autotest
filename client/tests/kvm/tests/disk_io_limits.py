@@ -29,15 +29,15 @@ met.
     io_limits = params.get("io_limits", "10")
 
     try:
-	output = session.cmd_output('dd if=/dev/vda of=/dev/null bs=256K count=128 iflag=direct')
-	bps_bytes = re.findall(r'[0-9]*.[0-9]* GB\/s', output)
-	bps_bytes = string.join(bps_bytes)
-	bps_bytes.replace(' GB/s','')
-	bps_bytes = float(bps_bytes)
+        output = session.cmd_output('dd if=/dev/vda of=/dev/null bs=256K count=128 iflag=direct')
+        bps_bytes = re.findall(r'[0-9]*.[0-9]* GB\/s', output)
+        bps_bytes = string.join(bps_bytes)
+        bps_bytes.replace(' GB/s','')
+        bps_bytes = float(bps_bytes)
 
         if bps_bytes > io_limits:
            raise error.TestFail('Throughput bigger than the stablished treshold of 10 MB/s')
-	else:
-	   logging.info("The limit crteria is met...")
+        else:
+           logging.info("The limit crteria is met...")
     finally:
         session.close()
