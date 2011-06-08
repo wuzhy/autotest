@@ -22,6 +22,8 @@ class kvm(test.test):
     """
     version = 1
     env_version = 1
+    preserve_srcdir = True
+    #preserve_srcdir = False
 
     def run_once(self, params):
         # Convert params to a Params object
