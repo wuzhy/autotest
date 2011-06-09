@@ -40,7 +40,7 @@ met.
         match = re.match(r'GB\/s', bps_bytes) 
         if match:
            G_byte = 1
-        match = re.match(r'GB\/s', bps_bytes)
+        match = re.match(r'B\/s', bps_bytes)
         if match:
            B_byte = 1
         bps_bytes = bps_bytes.replace(' GB/s','')
@@ -48,9 +48,9 @@ met.
         bps_bytes = bps_bytes.replace(' B/s','')
         bps_bytes = float(bps_bytes)
         if G_byte == 1:
-           bps_bytes = bps_bytes * 1000
+           bps_bytes = bps_bytes * 1024
         elif B_byte == 1:
-           bps_bytes = bps_bytes / 1000
+           bps_bytes = bps_bytes / 1024
 
         logging.debug("io_limits = %d, bps_bytes = %d", io_limits, bps_bytes)
 
