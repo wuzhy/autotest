@@ -22,22 +22,41 @@ met.
     """
     vm = env.get_vm(params["main_vm"])
     vm.verify_alive()
-    #timeout = float(params.get("login_timeout", 240))
-    #session = vm.wait_for_login(timeout=timeout)
-    session = vm.wait_for_login(timeout=30)
+    session = vm.wait_for_login()
 
-    io_limits = params.get("io_limits", "10")
+    # The default unit of io_limits is MB/s
+    io_limits = params.get("io_limits", "100 MB/s")
+    io_limits = re.findall(r'[0-9]* MB\/s', io_limits)
+    io_limits = string.join(io_limits)
+    io_limits = io_limits.replace(' MB/s','')
+    io_limits = float(io_limits)
 
     try:
         output = session.cmd_output('dd if=/dev/vda of=/dev/null bs=256K count=128 iflag=direct')
-        bps_bytes = re.findall(r'[0-9]*.[0-9]* GB\/s', output)
+        bps_bytes = re.findall(r'[0-9]*[.][0-9]* [GM]B\/s', output)
         bps_bytes = string.join(bps_bytes)
-        bps_bytes.replace(' GB/s','')
+        G_byte = 0
+        B_byte = 0
+        match = re.match(r'GB\/s', bps_bytes) 
+        if match:
+           G_byte = 1
+        match = re.match(r'GB\/s', bps_bytes)
+        if match:
+           B_byte = 1
+        bps_bytes = bps_bytes.replace(' GB/s','')
+        bps_bytes = bps_bytes.replace(' MB/s','')
+        bps_bytes = bps_bytes.replace(' B/s','')
         bps_bytes = float(bps_bytes)
+        if G_byte == 1:
+           bps_bytes = bps_bytes * 1000
+        elif B_byte == 1:
+           bps_bytes = bps_bytes / 1000
+
+        logging.debug("io_limits = %d, bps_bytes = %d", io_limits, bps_bytes)
 
         if bps_bytes > io_limits:
-           raise error.TestFail('Throughput bigger than the stablished treshold of 10 MB/s')
+           raise error.TestFail('Throughput has exceeded threshold ')
         else:
-           logging.info("The limit crteria is met...")
+           logging.info("The limit criteria is met...")
     finally:
         session.close()
