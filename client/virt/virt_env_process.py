@@ -16,7 +16,7 @@ _screendump_thread = None
 _screendump_thread_termination_event = None
 
 
-def preprocess_image(test, params):
+def preprocess_image(test, params, vm_name):
     """
     Preprocess a single QEMU image according to the instructions in params.
 
@@ -24,7 +24,7 @@ def preprocess_image(test, params):
     @param params: A dict containing image preprocessing parameters.
     @note: Currently this function just creates an image if requested.
     """
-    image_filename = virt_vm.get_image_filename(params, test.bindir)
+    image_filename = virt_vm.get_image_filename(params, test.bindir, vm_name)
 
     create_image = False
 
@@ -36,7 +36,7 @@ def preprocess_image(test, params):
         logging.debug("Creating image...")
         create_image = True
 
-    if create_image and not virt_vm.create_image(params, test.bindir):
+    if create_image and not virt_vm.create_image(params, test.bindir, vm_name):
         raise error.TestError("Could not create image")
 
 
@@ -92,7 +92,7 @@ def preprocess_vm(test, params, env, name):
         logging.warn(e)
 
 
-def postprocess_image(test, params):
+def postprocess_image(test, params, vm_name):
     """
     Postprocess a single QEMU image according to the instructions in params.
 
@@ -100,9 +100,9 @@ def postprocess_image(test, params):
     @param params: A dict containing image postprocessing parameters.
     """
     if params.get("check_image") == "yes":
-        virt_vm.check_image(params, test.bindir)
+        virt_vm.check_image(params, test.bindir, vm_name)
     if params.get("remove_image") == "yes":
-        virt_vm.remove_image(params, test.bindir)
+        virt_vm.remove_image(params, test.bindir, vm_name)
 
 
 def postprocess_vm(test, params, env, name):
@@ -175,13 +175,16 @@ def process(test, params, env, image_func, vm_func):
     """
     # Get list of VMs specified for this test
     for vm_name in params.objects("vms"):
+	logging.debug("VM name %s...", vm_name)
         vm_params = params.object_params(vm_name)
         # Get list of images specified for this VM
         for image_name in vm_params.objects("images"):
+	    logging.debug("Image name (%s)...", image_name)
             image_params = vm_params.object_params(image_name)
             # Call image_func for each image
-            image_func(test, image_params)
+            image_func(test, image_params, vm_name)
         # Call vm_func for each vm
+	logging.debug("Cur VM name %s...", vm_name)
         vm_func(test, vm_params, env, vm_name)
 
 
@@ -218,6 +221,7 @@ def preprocess(test, params, env):
 
     # Destroy and remove VMs that are no longer needed in the environment
     requested_vms = params.objects("vms")
+    logging.info("requested_vms =  %s", requested_vms)
     for key in env.keys():
         vm = env[key]
         if not virt_utils.is_vm(vm):

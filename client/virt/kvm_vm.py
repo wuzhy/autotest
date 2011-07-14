@@ -380,7 +380,7 @@ class VM(virt_vm.BaseVM):
             if image_params.get("boot_drive") == "no":
                 continue
             qemu_cmd += add_drive(help,
-                             virt_vm.get_image_filename(image_params, root_dir),
+                             virt_vm.get_image_filename(image_params, root_dir, name),
                                   image_params.get("drive_index"),
                                   image_params.get("drive_format"),
                                   image_params.get("drive_cache"),

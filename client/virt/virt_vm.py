@@ -186,7 +186,7 @@ class VMRebootError(VMError):
     pass
 
 
-def get_image_filename(params, root_dir):
+def get_image_filename(params, root_dir, vm_name):
     """
     Generate an image path from params and root_dir.
 
@@ -201,12 +201,12 @@ def get_image_filename(params, root_dir):
     image_format = params.get("image_format", "qcow2")
     if params.get("image_raw_device") == "yes":
         return image_name
-    image_filename = "%s.%s" % (image_name, image_format)
+    image_filename = "%s.%s.%s" % (image_name, vm_name, image_format)
     image_filename = virt_utils.get_path(root_dir, image_filename)
     return image_filename
 
 
-def create_image(params, root_dir):
+def create_image(params, root_dir, vm_name):
     """
     Create an image using qemu_image.
 
@@ -226,7 +226,7 @@ def create_image(params, root_dir):
     format = params.get("image_format", "qcow2")
     qemu_img_cmd += " -f %s" % format
 
-    image_filename = get_image_filename(params, root_dir)
+    image_filename = get_image_filename(params, root_dir, vm_name)
     qemu_img_cmd += " %s" % image_filename
 
     size = params.get("image_size", "10G")
@@ -237,7 +237,7 @@ def create_image(params, root_dir):
     return image_filename
 
 
-def remove_image(params, root_dir):
+def remove_image(params, root_dir, vm_name):
     """
     Remove an image file.
 
@@ -248,7 +248,7 @@ def remove_image(params, root_dir):
            image_name -- the name of the image file, without extension
            image_format -- the format of the image (qcow2, raw etc)
     """
-    image_filename = get_image_filename(params, root_dir)
+    image_filename = get_image_filename(params, root_dir, vm_name)
     logging.debug("Removing image file %s...", image_filename)
     if os.path.exists(image_filename):
         os.unlink(image_filename)
@@ -256,7 +256,7 @@ def remove_image(params, root_dir):
         logging.debug("Image file %s not found")
 
 
-def check_image(params, root_dir):
+def check_image(params, root_dir, vm_name):
     """
     Check an image using the appropriate tools for each virt backend.
 
@@ -271,7 +271,7 @@ def check_image(params, root_dir):
     """
     vm_type = params.get("vm_type")
     if vm_type == 'kvm':
-        image_filename = get_image_filename(params, root_dir)
+        image_filename = get_image_filename(params, root_dir, vm_name)
         logging.debug("Checking image file %s...", image_filename)
         qemu_img_cmd = virt_utils.get_path(root_dir,
                                       params.get("qemu_img_binary", "qemu-img"))

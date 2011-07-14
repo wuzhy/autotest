@@ -508,68 +508,70 @@ def run_unattended_install(test, params, env):
     """
     unattended_install_config = UnattendedInstallConfig(test, params)
     unattended_install_config.setup()
-    vm = env.get_vm(params["main_vm"])
-    vm.create()
+    for vm_name in params.objects("vms"):
+        logging.info("vm_name %s", vm_name)
+    	vm = env.get_vm(vm_name)
+    	vm.create()
 
-    install_timeout = int(params.get("timeout", 3000))
-    post_install_delay = int(params.get("post_install_delay", 0))
-    port = vm.get_port(int(params.get("guest_port_unattended_install")))
+    	install_timeout = int(params.get("timeout", 900))
+    	post_install_delay = int(params.get("post_install_delay", 0))
+    	port = vm.get_port(int(params.get("guest_port_unattended_install")))
 
-    migrate_background = params.get("migrate_background") == "yes"
-    if migrate_background:
-        mig_timeout = float(params.get("mig_timeout", "3600"))
-        mig_protocol = params.get("migration_protocol", "tcp")
+    	migrate_background = params.get("migrate_background") == "yes"
+    	if migrate_background:
+            mig_timeout = float(params.get("mig_timeout", "3600"))
+            mig_protocol = params.get("migration_protocol", "tcp")
 
-    logging.info("Waiting for installation to finish. Timeout set to %d s "
+    	logging.info("Waiting for installation to finish. Timeout set to %d s "
                  "(%d min)", install_timeout, install_timeout/60)
-    error.context("waiting for installation to finish")
+    	error.context("waiting for installation to finish")
 
-    start_time = time.time()
-    while (time.time() - start_time) < install_timeout:
-        try:
-            vm.verify_alive()
-        except virt_vm.VMDeadError, e:
-            if params.get("wait_no_ack", "no") == "yes":
-                break
-            else:
-                raise e
-        vm.verify_kernel_crash()
-        if params.get("wait_no_ack", "no") == "no":
-            client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    	start_time = time.time()
+    	while (time.time() - start_time) < install_timeout:
             try:
-                client.connect((vm.get_address(), port))
-                if client.recv(1024) == "done":
+            	vm.verify_alive()
+            except virt_vm.VMDeadError, e:
+            	if params.get("wait_no_ack", "no") == "yes":
                     break
-            except (socket.error, virt_vm.VMAddressError):
-                pass
+            	else:
+                    raise e
+            vm.verify_kernel_crash()
+            if params.get("wait_no_ack", "no") == "no":
+                client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                try:
+                    client.connect((vm.get_address(), port))
+                    if client.recv(1024) == "done":
+                        break
+                except (socket.error, virt_vm.VMAddressError):
+                    pass
 
-        if migrate_background:
-            # Drop the params which may break the migration
-            # Better method is to use dnsmasq to do the
-            # unattended installation
-            if vm.params.get("initrd"):
-                vm.params["initrd"] = None
-            if vm.params.get("kernel"):
-                vm.params["kernel"] = None
-            if vm.params.get("extra_params"):
-                vm.params["extra_params"] = re.sub("--append '.*'", "",
+            if migrate_background:
+                # Drop the params which may break the migration
+                # Better method is to use dnsmasq to do the
+                # unattended installation
+                if vm.params.get("initrd"):
+                    vm.params["initrd"] = None
+                if vm.params.get("kernel"):
+                    vm.params["kernel"] = None
+                if vm.params.get("extra_params"):
+                    vm.params["extra_params"] = re.sub("--append '.*'", "",
                                                    vm.params["extra_params"])
-            vm.migrate(timeout=mig_timeout, protocol=mig_protocol)
-        else:
-            time.sleep(1)
-        if params.get("wait_no_ack", "no") == "no":
-            client.close()
-    else:
-        raise error.TestFail("Timeout elapsed while waiting for install to "
+                vm.migrate(timeout=mig_timeout, protocol=mig_protocol)
+            else:
+                time.sleep(1)
+            if params.get("wait_no_ack", "no") == "no":
+                client.close()
+    	else:
+            raise error.TestFail("Timeout elapsed while waiting for install to "
                              "finish")
 
-    time_elapsed = time.time() - start_time
-    logging.info("Guest reported successful installation after %d s (%d min)",
+    	time_elapsed = time.time() - start_time
+    	logging.info("Guest reported successful installation after %d s (%d min)",
                  time_elapsed, time_elapsed/60)
 
-    if params.get("shutdown_cleanly", "yes") == "yes":
-        shutdown_cleanly_timeout = int(params.get("shutdown_cleanly_timeout",
+    	if params.get("shutdown_cleanly", "yes") == "yes":
+            shutdown_cleanly_timeout = int(params.get("shutdown_cleanly_timeout",
                                                   120))
-        logging.info("Wait for guest to shudown cleanly...")
-        if virt_utils.wait_for(vm.is_dead, shutdown_cleanly_timeout, 1, 1):
-            logging.info("Guest managed to shutdown cleanly")
+            logging.info("Wait for guest to shudown cleanly...")
+            if virt_utils.wait_for(vm.is_dead, shutdown_cleanly_timeout, 1, 1):
+            	logging.info("Guest managed to shutdown cleanly")
